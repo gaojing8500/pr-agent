@@ -7,9 +7,9 @@ It can be invoked manually by commenting on any PR:
 ```
 For example:
 
-<kbd><img src=./../pics/describe_comment.png width="768"></kbd>
+<kbd><img src=https://codium.ai/images/pr_agent/describe_comment.png width="768"></kbd>
 
-<kbd><img src=./../pics/describe.png width="768"></kbd>
+<kbd><img src=https://codium.ai/images/pr_agent/describe.png width="768"></kbd>
 
 The `describe` tool can also be triggered automatically every time a new PR is opened. See examples for automatic triggers for [GitHub App](https://github.com/Codium-ai/pr-agent/blob/main/Usage.md#github-app-automatic-tools) and [GitHub Action](https://github.com/Codium-ai/pr-agent/blob/main/Usage.md#working-with-github-action)
 
@@ -28,6 +28,7 @@ Under the section 'pr_description', the [configuration file](./../pr_agent/setti
 - `extra_instructions`: Optional extra instructions to the tool. For example: "focus on the changes in the file X. Ignore change in ...".
 - To enable `custom labels`, apply the configuration changes described [here](./GENERATE_CUSTOM_LABELS.md#configuration-changes)
 - `enable_pr_type`: if set to false, it will not show the `PR type` as a text value in the description content. Default is true.
+- `final_update_message`: if set to true, it will add a comment message [`PR Description updated to latest commit...`](https://github.com/Codium-ai/pr-agent/pull/499#issuecomment-1837412176) after finishing calling `/describe`. Default is true.
   
 ### Markers template
 
@@ -52,11 +53,11 @@ The marker `pr_agent:summary` will be replaced with the PR summary, and `pr_agen
           pr_description.use_description_markers: 'true'
 ```          
 
-<kbd><img src=./../pics/describe_markers_before.png width="768"></kbd>
+<kbd><img src=https://codium.ai/images/pr_agent/describe_markers_before.png width="768"></kbd>
 
 ==>
 
-<kbd><img src=./../pics/describe_markers_after.png width="768"></kbd>
+<kbd><img src=https://codium.ai/images/pr_agent/describe_markers_after.png width="768"></kbd>
 
 ##### Configuration params:
 

@@ -8,8 +8,8 @@ from retry import retry
 from starlette_context import context
 
 from ..algo.language_handler import is_valid_file
-from ..algo.pr_processing import clip_tokens, find_line_number_of_relevant_line_in_file
-from ..algo.utils import load_large_diff
+from ..algo.pr_processing import find_line_number_of_relevant_line_in_file
+from ..algo.utils import load_large_diff, clip_tokens
 from ..config_loader import get_settings
 from ..log import get_logger
 from ..servers.utils import RateLimitExceeded
@@ -34,6 +34,7 @@ class GithubProvider(GitProvider):
         if pr_url and 'pull' in pr_url:
             self.set_pr(pr_url)
             self.last_commit_id = list(self.pr.get_commits())[-1]
+            self.pr_url = self.get_pr_url() # pr_url for github actions can be as api.github.com, so we need to get the url from the pr object
 
     def is_supported(self, capability: str) -> bool:
         return True
@@ -60,6 +61,8 @@ class GithubProvider(GitProvider):
                     get_logger().info(f"Skipping merge commit {commit.commit.message}")
                     continue
                 self.file_set.update({file.filename: file for file in commit.files})
+        else:
+            raise ValueError("No previous review found")
 
     def get_commit_range(self):
         last_review_time = self.previous_review.created_at
@@ -500,6 +503,15 @@ class GithubProvider(GitProvider):
                 get_logger().info(f"Failed adding line link, error: {e}")
 
         return ""
+
+    def get_line_link(self, relevant_file: str, relevant_line_start: int, relevant_line_end: int = None) -> str:
+        sha_file = hashlib.sha256(relevant_file.encode('utf-8')).hexdigest()
+        if relevant_line_end:
+            link = f"https://github.com/{self.repo}/pull/{self.pr_num}/files#diff-{sha_file}R{relevant_line_start}-R{relevant_line_end}"
+        else:
+            link = f"https://github.com/{self.repo}/pull/{self.pr_num}/files#diff-{sha_file}R{relevant_line_start}"
+        return link
+
 
     def get_pr_id(self):
         try:

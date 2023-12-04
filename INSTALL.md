@@ -25,6 +25,7 @@ There are several ways to use PR-Agent:
 **BitBucket specific methods**
 - [Run as a Bitbucket Pipeline](INSTALL.md#run-as-a-bitbucket-pipeline)
 - [Run on a hosted app](INSTALL.md#run-on-a-hosted-bitbucket-app)
+- [Bitbucket server and data center](INSTALL.md#bitbucket-server-and-data-center)
 ---
 
 ### Use Docker image (no installation required)
@@ -156,10 +157,11 @@ jobs:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
-2. Add the following secret to your repository under `Settings > Secrets`:
+2. Add the following secret to your repository under `Settings > Secrets and variables > Actions > New repository secret > Add secret`:
 
 ```
-OPENAI_KEY: <your key>
+Name = OPENAI_KEY
+Secret = <your key>
 ```
 
 The GITHUB_TOKEN secret is automatically created by GitHub.
@@ -417,5 +419,42 @@ Note that comments on a PR are not supported in Bitbucket Pipeline.
 
 Please contact <support@codium.ai> or visit [CodiumAI pricing page](https://www.codium.ai/pricing/) if you're interested in a hosted BitBucket app solution that provides full functionality including PR reviews and comment handling. It's based on the [bitbucket_app.py](https://github.com/Codium-ai/pr-agent/blob/main/pr_agent/git_providers/bitbucket_provider.py) implementation.
 
+
+### Bitbucket Server and Data Center
+
+Login into your on-prem instance of Bitbucket with your service account username and password.
+Navigate to `Manage account`, `HTTP Access tokens`, `Create Token`.
+Generate the token and add it to .secret.toml under `bitbucket_server` section
+
+```toml
+[bitbucket_server]
+bearer_token = "<your key>"
+```
+
+#### Run it as CLI
+
+Modify `configuration.toml`:
+
+```toml
+git_provider="bitbucket_server"
+```
+
+and pass the Pull request URL:
+```shell
+python cli.py --pr_url https://git.onpreminstanceofbitbucket.com/projects/PROJECT/repos/REPO/pull-requests/1 review
+```
+
+#### Run it as service
+
+To run pr-agent as webhook, build the docker image:
+```
+docker build . -t codiumai/pr-agent:bitbucket_server_webhook --target bitbucket_server_webhook -f docker/Dockerfile
+docker push codiumai/pr-agent:bitbucket_server_webhook  # Push to your Docker repository
+```
+
+Navigate to `Projects` or `Repositories`, `Settings`, `Webhooks`, `Create Webhook`.
+Fill the name and URL, Authentication None select the Pull Request Opened checkbox to receive that event as webhook.
+
+The URL should end with `/webhook`, for example: https://domain.com/webhook
 
 =======

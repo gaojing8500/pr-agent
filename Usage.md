@@ -32,14 +32,19 @@ The [Tools Guide](./docs/TOOLS_GUIDE.md) provides a detailed description of the 
 #### Ignoring files from analysis
 In some cases, you may want to exclude specific files or directories from the analysis performed by CodiumAI PR-Agent. This can be useful, for example, when you have files that are generated automatically or files that shouldn't be reviewed, like vendored code.
 
-To ignore files or directories, edit the **[ignore.toml](/pr_agent/settings/ignore.toml)** configuration file. This setting is also exposed the following environment variables:
+To ignore files or directories, edit the **[ignore.toml](/pr_agent/settings/ignore.toml)** configuration file. This setting also exposes the following environment variables:
 
  - `IGNORE.GLOB`
  - `IGNORE.REGEX`
 
-For example, to ignore python files in a PR, set:
+For example, to ignore python files in a PR with online usage, comment on a PR:
+`/review --ignore.glob=['*.py']`
 
-`ignore.glob = ['*.py']`
+To ignore python files in all PRs, set in a configuration file:
+```
+[ignore]
+glob = ['*.py']
+```
 
 #### git provider
 The [git_provider](pr_agent/settings/configuration.toml#L4) field in the configuration file determines the GIT provider that will be used by PR-Agent. Currently, the following providers are supported:
@@ -61,7 +66,7 @@ The [git_provider](pr_agent/settings/configuration.toml#L4) field in the configu
 
 ### Working from a local repo (CLI)
 When running from your local repo (CLI), your local configuration file will be used.
-Examples for invoking the different tools via the CLI:
+Examples of invoking the different tools via the CLI:
 
 - **Review**:       `python -m pr_agent.cli --pr_url=<pr_url>  review`
 - **Describe**:     `python -m pr_agent.cli --pr_url=<pr_url>  describe`
@@ -85,7 +90,7 @@ python -m pr_agent.cli --pr_url=<pr_url>  /review --pr_reviewer.extra_instructio
 publish_output=true
 verbosity_level=2
 ```
-This is useful for debugging or experimenting with the different tools.
+This is useful for debugging or experimenting with different tools.
 
 
 ### Online usage
@@ -102,17 +107,17 @@ Commands for invoking the different tools via comments:
 
 
 To edit a specific configuration value, just add `--config_path=<value>` to any command.
-For example if you want to edit the `review` tool configurations, you can run:
+For example, if you want to edit the `review` tool configurations, you can run:
 ```
 /review --pr_reviewer.extra_instructions="..." --pr_reviewer.require_score_review=false
 ```
-Any configuration value in [configuration file](pr_agent/settings/configuration.toml) file can be similarly edited. comment `/config` to see the list of available configurations.
+Any configuration value in [configuration file](pr_agent/settings/configuration.toml) file can be similarly edited. Comment `/config` to see the list of available configurations.
 
 
 ### Working with GitHub App
 When running PR-Agent from GitHub App, the default [configuration file](pr_agent/settings/configuration.toml) from a pre-built docker will be initially loaded.
 
-By uploading a local `.pr_agent.toml` file, you can edit and customize any configuration parameter.
+By uploading a local `.pr_agent.toml` file to the root of the repo's main branch, you can edit and customize any configuration parameter. Note that you need to upload `.pr_agent.toml` prior to creating a PR, in order for the configuration to take effect.
 
 For example, if you set in `.pr_agent.toml`:
 
@@ -121,7 +126,7 @@ For example, if you set in `.pr_agent.toml`:
 num_code_suggestions=1
 ```
 
-Than you will overwrite the default number of code suggestions to be 1.
+Then you will overwrite the default number of code suggestions to 1.
 
 #### GitHub app automatic tools
 The [github_app](pr_agent/settings/configuration.toml#L76) section defines GitHub app-specific configurations.  
@@ -135,7 +140,7 @@ The GitHub app can respond to the following actions on a PR:
 4. `review_requested` - Specifically requesting review (in the PR reviewers list) from the `github-actions[bot]` user
 
 The configuration parameter `handle_pr_actions` defines the list of actions for which the GitHub app will trigger the PR-Agent.  
-The configuration parameter `pr_commands` defines the list of tools that will be **run automatically** when one of the above action happens (e.g. a new PR is opened):
+The configuration parameter `pr_commands` defines the list of tools that will be **run automatically** when one of the above actions happens (e.g., a new PR is opened):
 ```
 [github_app]
 handle_pr_actions = ['opened', 'reopened', 'ready_for_review', 'review_requested']
@@ -175,11 +180,11 @@ push_commands = [
     "/auto_review -i --pr_reviewer.remove_previous_review_comment=true",
 ]
 ```
-The means that when new code is pushed to the PR, the PR-Agent will run the `describe` and incremental `auto_review` tools.  
+This means that when new code is pushed to the PR, the PR-Agent will run the `describe` and incremental `auto_review` tools.  
 For the describe tool, the `add_original_user_description` and `keep_original_user_title` parameters will be set to true.  
 For the `auto_review` tool, it will run in incremental mode, and the `remove_previous_review_comment` parameter will be set to true.
 
-Much like the configurations for `pr_commands`, you can override the default tool paramteres by uploading a local configuration file to the root of your repo.
+Much like the configurations for `pr_commands`, you can override the default tool parameters by uploading a local configuration file to the root of your repo.
 
 #### Editing the prompts
 The prompts for the various PR-Agent tools are defined in the `pr_agent/settings` folder.
@@ -228,7 +233,7 @@ To use a different model than the default (GPT-4), you need to edit [configurati
 For models and environments not from OPENAI, you might need to provide additional keys and other parameters. See below for instructions.
 
 #### Azure
-To use Azure, set in your .secrets.toml:
+To use Azure, set in your `.secrets.toml` (working from CLI), or in the GitHub `Settings > Secrets and variables` (working from GitHub App or GitHub Action):
 ```
 api_key = "" # your azure api key
 api_type = "azure"
@@ -237,12 +242,11 @@ api_base = ""  # The base URL for your Azure OpenAI resource. e.g. "https://<you
 openai.deployment_id = ""  # The deployment name you chose when you deployed the engine
 ```
 
-and
+and set in your configuration file:
 ```
 [config]
 model="" # the OpenAI model you've deployed on Azure (e.g. gpt-3.5-turbo)
 ```
-in the configuration.toml
 
 #### Huggingface
 
@@ -258,7 +262,7 @@ MAX_TOKENS = {
 e.g.
 MAX_TOKENS={
     ...,
-    "llama2": 4096
+    "ollama/llama2": 4096
 }
 
 
@@ -267,6 +271,8 @@ model = "ollama/llama2"
 
 [ollama] # in .secrets.toml
 api_base = ... # the base url for your huggingface inference endpoint
+# e.g. if running Ollama locally, you may use:
+api_base = "http://localhost:11434/"
 ```
 
 **Inference Endpoints**
@@ -322,6 +328,23 @@ vertex_location = ""
 Your [application default credentials](https://cloud.google.com/docs/authentication/application-default-credentials) will be used for authentication so there is no need to set explicit credentials in most environments.
 
 If you do want to set explicit credentials then you can use the `GOOGLE_APPLICATION_CREDENTIALS` environment variable set to a path to a json credentials file.
+
+#### Amazon Bedrock
+
+To use Amazon Bedrock and its foundational models, add the below configuration:
+
+``` 
+[config] # in configuration.toml
+model = "anthropic.claude-v2"
+fallback_models="anthropic.claude-instant-v1"
+
+[aws] # in .secrets.toml
+bedrock_region = "us-east-1"
+```
+
+Note that you have to add access to foundational models before using them. Please refer to [this document](https://docs.aws.amazon.com/bedrock/latest/userguide/setting-up.html) for more details.
+
+AWS session is automatically authenticated from your environment, but you can also explicitly set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
 
 ### Working with large PRs
 

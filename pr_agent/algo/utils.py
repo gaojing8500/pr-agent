@@ -11,6 +11,7 @@ import yaml
 from starlette_context import context
 
 from pr_agent.algo import MAX_TOKENS
+from pr_agent.algo.token_handler import get_token_encoder
 from pr_agent.config_loader import get_settings, global_settings
 from pr_agent.log import get_logger
 
@@ -57,7 +58,8 @@ def convert_to_markdown(output_data: dict, gfm_supported: bool=True) -> str:
             emoji = emojis.get(key, "")
             if key.lower() == 'code feedback':
                 if gfm_supported:
-                    markdown_text += f"\n\n- **<details><summary> { emoji } Code feedback:**</summary>\n\n"
+                    markdown_text += f"\n\n- "
+                    markdown_text += f"<details><summary> { emoji } Code feedback:</summary>\n\n"
                 else:
                     markdown_text += f"\n\n- **{emoji} Code feedback:**\n\n"
             else:
@@ -98,9 +100,9 @@ def parse_code_suggestion(code_suggestions: dict, gfm_supported: bool=True) -> s
                 markdown_text += f"    - **{code_key}:**\n{code_str_indented}\n"
         else:
             if "relevant file" in sub_key.lower():
-                markdown_text += f"\n  - **{sub_key}:** {sub_value}\n"
+                markdown_text += f"\n  - **{sub_key}:** {sub_value}  \n"
             else:
-                markdown_text += f"   **{sub_key}:** {sub_value}\n"
+                markdown_text += f"   **{sub_key}:** {sub_value}  \n"
             if not gfm_supported:
                 if "relevant line" not in sub_key.lower(): # nicer presentation
                         # markdown_text = markdown_text.rstrip('\n') + "\\\n" # works for gitlab
@@ -282,7 +284,7 @@ def _fix_key_value(key: str, value: str):
     try:
         value = yaml.safe_load(value)
     except Exception as e:
-        get_logger().error(f"Failed to parse YAML for config override {key}={value}", exc_info=e)
+        get_logger().debug(f"Failed to parse YAML for config override {key}={value}", exc_info=e)
     return key, value
 
 
@@ -323,7 +325,15 @@ def try_fix_yaml(response_text: str) -> dict:
             break
         except:
             pass
-    return data
+    
+    # thrid fallback - try to remove leading and trailing curly brackets
+    response_text_copy = response_text.strip().rstrip().removeprefix('{').removesuffix('}')
+    try:
+        data = yaml.safe_load(response_text_copy,)
+        get_logger().info(f"Successfully parsed AI prediction after removing curly brackets")
+        return data
+    except:
+        pass
 
 
 def set_custom_labels(variables):
@@ -338,12 +348,15 @@ def set_custom_labels(variables):
         labels_list = f"      - {labels_list}" if labels_list else ""
         variables["custom_labels"] = labels_list
         return
-    final_labels = ""
+    #final_labels = ""
+    #for k, v in labels.items():
+    #    final_labels += f"      - {k} ({v['description']})\n"
+    #variables["custom_labels"] = final_labels
+    #variables["custom_labels_examples"] = f"      - {list(labels.keys())[0]}"
+    variables["custom_labels_class"] = "class Label(str, Enum):"
     for k, v in labels.items():
-        final_labels += f"      - {k} ({v['description']})\n"
-    variables["custom_labels"] = final_labels
-    variables["custom_labels_examples"] = f"      - {list(labels.keys())[0]}"
-
+        description = v['description'].strip('\n').replace('\n', '\\n')
+        variables["custom_labels_class"] += f"\n    {k.lower().replace(' ', '_')} = '{k}' # {description}"
 
 def get_user_labels(current_labels: List[str] = None):
     """
@@ -370,8 +383,43 @@ def get_user_labels(current_labels: List[str] = None):
 
 def get_max_tokens(model):
     settings = get_settings()
-    max_tokens_model = MAX_TOKENS[model]
+    if model in MAX_TOKENS:
+        max_tokens_model = MAX_TOKENS[model]
+    else:
+        raise Exception(f"MAX_TOKENS must be set for model {model} in ./pr_agent/algo/__init__.py")
+
     if settings.config.max_model_tokens:
         max_tokens_model = min(settings.config.max_model_tokens, max_tokens_model)
         # get_logger().debug(f"limiting max tokens to {max_tokens_model}")
     return max_tokens_model
+
+
+def clip_tokens(text: str, max_tokens: int, add_three_dots=True) -> str:
+    """
+    Clip the number of tokens in a string to a maximum number of tokens.
+
+    Args:
+        text (str): The string to clip.
+        max_tokens (int): The maximum number of tokens allowed in the string.
+        add_three_dots (bool, optional): A boolean indicating whether to add three dots at the end of the clipped
+    Returns:
+        str: The clipped string.
+    """
+    if not text:
+        return text
+
+    try:
+        encoder = get_token_encoder()
+        num_input_tokens = len(encoder.encode(text))
+        if num_input_tokens <= max_tokens:
+            return text
+        num_chars = len(text)
+        chars_per_token = num_chars / num_input_tokens
+        num_output_chars = int(chars_per_token * max_tokens)
+        clipped_text = text[:num_output_chars]
+        if add_three_dots:
+            clipped_text += "...(truncated)"
+        return clipped_text
+    except Exception as e:
+        get_logger().warning(f"Failed to clip tokens: {e}")
+        return text

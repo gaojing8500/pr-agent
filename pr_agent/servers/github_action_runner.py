@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from typing import Union
 
 from pr_agent.agent.pr_agent import PRAgent
 from pr_agent.config_loader import get_settings
@@ -10,6 +11,22 @@ from pr_agent.log import get_logger
 from pr_agent.tools.pr_code_suggestions import PRCodeSuggestions
 from pr_agent.tools.pr_description import PRDescription
 from pr_agent.tools.pr_reviewer import PRReviewer
+
+
+def is_true(value: Union[str, bool]) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() == 'true'
+    return False
+
+
+def get_setting_or_env(key: str, default: Union[str, bool] = None) -> Union[str, bool]:
+    try:
+        value = get_settings().get(key, default)
+    except AttributeError:  # TBD still need to debug why this happens on GitHub Actions
+        value = os.getenv(key, None) or os.getenv(key.upper(), None) or os.getenv(key.lower(), None) or default
+    return value
 
 
 async def run_action():
@@ -65,14 +82,14 @@ async def run_action():
         if action in ["opened", "reopened"]:
             pr_url = event_payload.get("pull_request", {}).get("url")
             if pr_url:
-                auto_review = os.environ.get('github_action.auto_review', None)
-                if auto_review is None or (isinstance(auto_review, str) and auto_review.lower() == 'true'):
+                auto_review = get_setting_or_env("GITHUB_ACTION.AUTO_REVIEW", None)
+                if auto_review is None or is_true(auto_review):
                     await PRReviewer(pr_url).run()
-                auto_describe = os.environ.get('github_action.auto_describe', None)
-                if isinstance(auto_describe, str) and auto_describe.lower() == 'true':
+                auto_describe = get_setting_or_env("GITHUB_ACTION.AUTO_DESCRIBE", None)
+                if is_true(auto_describe):
                     await PRDescription(pr_url).run()
-                auto_improve = os.environ.get('github_action.auto_improve', None)
-                if isinstance(auto_improve, str) and auto_improve.lower() == 'true':
+                auto_improve = get_setting_or_env("GITHUB_ACTION.AUTO_IMPROVE", None)
+                if is_true(auto_improve):
                     await PRCodeSuggestions(pr_url).run()
 
     # Handle issue comment event
