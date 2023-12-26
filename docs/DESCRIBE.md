@@ -1,6 +1,6 @@
 # Describe Tool
 
-The `describe` tool scans the PR code changes, and automatically generates PR description - title, type, summary, code walkthrough and labels.
+The `describe` tool scans the PR code changes, and automatically generates PR description - title, type, summary, walkthrough and labels.
 It can be invoked manually by commenting on any PR:
 ```
 /describe
@@ -12,6 +12,21 @@ For example:
 <kbd><img src=https://codium.ai/images/pr_agent/describe.png width="768"></kbd>
 
 The `describe` tool can also be triggered automatically every time a new PR is opened. See examples for automatic triggers for [GitHub App](https://github.com/Codium-ai/pr-agent/blob/main/Usage.md#github-app-automatic-tools) and [GitHub Action](https://github.com/Codium-ai/pr-agent/blob/main/Usage.md#working-with-github-action)
+
+### Handle custom labels from the Repo's labels page :gem:
+> This feature is available only in PR-Agent Pro 
+* GitHub : `https://github.com/{owner}/{repo}/labels`, or click on the "Labels" tab in the issues or PRs page.
+* GitLab : `https://gitlab.com/{owner}/{repo}/-/labels`, or click on "Manage" -> "Labels" on the left menu.
+
+b. Add/edit the custom labels. It should be formatted as follows:
+* Label name: The name of the custom label.
+* Description: Start the description of with prefix `pr_agent:`, for example: `pr_agent: Description of when AI should suggest this label`.<br>
+The description should be comprehensive and detailed, indicating when to add the desired label.
+<kbd><img src=https://codium.ai/images/pr_agent/add_native_custom_labels.png width="880"></kbd>
+
+c. Now the custom labels will be included in the `generate_labels` tool.
+
+*This feature is supported in GitHub and GitLab.
 
 ### Configuration options
 
@@ -26,9 +41,14 @@ Under the section 'pr_description', the [configuration file](./../pr_agent/setti
 - `keep_original_user_title`: if set to true, the tool will keep the original PR title, and won't change it. Default is false.
 
 - `extra_instructions`: Optional extra instructions to the tool. For example: "focus on the changes in the file X. Ignore change in ...".
+
 - To enable `custom labels`, apply the configuration changes described [here](./GENERATE_CUSTOM_LABELS.md#configuration-changes)
+
 - `enable_pr_type`: if set to false, it will not show the `PR type` as a text value in the description content. Default is true.
+
 - `final_update_message`: if set to true, it will add a comment message [`PR Description updated to latest commit...`](https://github.com/Codium-ai/pr-agent/pull/499#issuecomment-1837412176) after finishing calling `/describe`. Default is true.
+
+- `enable_semantic_files_types`: if set to true, "PR changes walkthrough" section will be generated. Default is true.
   
 ### Markers template
 

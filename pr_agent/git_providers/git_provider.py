@@ -26,6 +26,8 @@ class FilePatchInfo:
     tokens: int = -1
     edit_type: EDIT_TYPE = EDIT_TYPE.UNKNOWN
     old_filename: str = None
+    num_plus_lines: int = -1
+    num_minus_lines: int = -1
 
 
 class GitProvider(ABC):
@@ -104,9 +106,9 @@ class GitProvider(ABC):
     def publish_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str):
         pass
 
-    @abstractmethod
-    def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str):
-        pass
+    def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str,
+                              absolute_position: int = None):
+        raise NotImplementedError("This git provider does not support creating inline comments yet")
 
     @abstractmethod
     def publish_inline_comments(self, comments: list[dict]):
@@ -133,7 +135,10 @@ class GitProvider(ABC):
         pass
 
     @abstractmethod
-    def get_labels(self):
+    def get_pr_labels(self):
+        pass
+
+    def get_repo_labels(self):
         pass
 
     @abstractmethod

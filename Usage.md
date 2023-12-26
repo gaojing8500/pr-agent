@@ -6,6 +6,7 @@
 - [Online usage](#online-usage)
 - [Working with GitHub App](#working-with-github-app)
 - [Working with GitHub Action](#working-with-github-action)
+- [Working with BitBucket App](#working-with-bitbucket-self-hosted-app)
 - [Changing a model](#changing-a-model)
 - [Working with large PRs](#working-with-large-prs)
 - [Appendix - additional configurations walkthrough](#appendix---additional-configurations-walkthrough)
@@ -225,6 +226,35 @@ For example, you can set an environment variable: `pr_description.add_original_u
 add_original_user_description = false
 ```
 
+### Working with BitBucket Self-Hosted App
+Similar to GitHub app, when running PR-Agent from BitBucket App, the default [configuration file](pr_agent/settings/configuration.toml) from a pre-built docker will be initially loaded.
+
+By uploading a local `.pr_agent.toml` file to the root of the repo's main branch, you can edit and customize any configuration parameter. Note that you need to upload `.pr_agent.toml` prior to creating a PR, in order for the configuration to take effect.
+
+For example, if your local `.pr_agent.toml` file contains:
+```
+[pr_reviewer]
+inline_code_comments = true
+```
+
+Each time you invoke a `/review` tool, it will use inline code comments.
+
+#### BitBucket Self-Hosted App automatic tools
+You can configure in your local `.pr_agent.toml` file which tools will **run automatically** when a new PR is opened.
+
+Specifically, set the following values:
+```yaml
+[bitbucket_app]
+auto_review = true    # set as config var in .pr_agent.toml
+auto_describe = true  # set as config var in .pr_agent.toml
+auto_improve = true   # set as config var in .pr_agent.toml
+```
+
+`bitbucket_app.auto_review`, `bitbucket_app.auto_describe` and `bitbucket_app.auto_improve` are used to enable/disable automatic tools.
+If not set, the default option is that only the `review` tool will run automatically when a new PR is opened.
+
+Note that due to limitations of the bitbucket platform, the `auto_describe` tool will be able to publish a PR description only as a comment. 
+In addition, some subsections like `PR changes walkthrough` will not appear, since they require the usage of collapsible sections, which are not supported by bitbucket.
 
 ### Changing a model
 
